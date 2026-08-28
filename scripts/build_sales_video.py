@@ -1,284 +1,301 @@
 from __future__ import annotations
 
 import asyncio
-import re
 import subprocess
 import sys
-import textwrap
-from datetime import timedelta
 from pathlib import Path
 
 SHARED_PYDEPS = Path(__file__).resolve().parents[3] / "tmp" / "upwork-video" / "pydeps"
 sys.path.insert(0, str(SHARED_PYDEPS))
 
+import edge_tts
 import imageio_ffmpeg
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFilter, ImageFont, ImageOps
 
-ROOT = Path(__file__).parents[1]
+
+ROOT = Path(__file__).resolve().parents[1]
+WORKSPACE = ROOT.parents[1]
+WORK = WORKSPACE / "tmp" / "followdesk-video"
+FRAMES = WORK / "frames"
 ASSETS = ROOT / "sales-assets"
 OUTPUT = ASSETS / "FollowDesk-Upwork-Demo.mp4"
-SILENT_OUTPUT = ASSETS / "FollowDesk-Upwork-Demo-Silent.mp4"
 NARRATION = ASSETS / "FollowDesk-Upwork-Narration.mp3"
 SUBTITLES = ASSETS / "FollowDesk-Upwork-Narration.srt"
-WIDTH = 1280
-HEIGHT = 720
-FPS = 30
-INK = "#181727"
-PRIMARY = "#5b4df7"
-ACCENT = "#dfff70"
-WHITE = "#ffffff"
-MUTED = "#aaa8b8"
-VOICE = "en-US-GuyNeural"
-NARRATION_TEXT = (
-    "Meet FollowDesk, a focused lead follow-up system for service businesses. "
-    "Capture every enquiry through a branded form with the customer and service details your team needs. "
-    "Each lead appears in one dashboard, with its status, priority, owner, and next action clearly organized. "
-    "Move opportunities through a simple pipeline, from new enquiry to booked customer or won business. "
-    "FollowDesk sends approved follow-up messages on schedule, so your team responds consistently without manual chasing. "
-    "Customize the brand, sender details, booking link, and workflow for each business. "
-    "Choose your package and launch FollowDesk with Noerong."
-)
+FRAMES.mkdir(parents=True, exist_ok=True)
+
+WIDTH, HEIGHT = 1280, 720
+BG = "#0B0F0D"
+PANEL = "#171E1A"
+CREAM = "#F6F4ED"
+MUTED = "#A8B1AB"
+LIME = "#DFFF70"
+PURPLE = "#7567FF"
+FONT_REGULAR = Path(r"C:\Windows\Fonts\segoeui.ttf")
+FONT_SEMIBOLD = Path(r"C:\Windows\Fonts\seguisb.ttf")
+VOICE = "en-US-EmmaMultilingualNeural"
+NARRATION_TEXT = """Turn every enquiry into a clear next step with FollowDesk.
+
+FollowDesk gives service businesses a branded lead capture and follow-up workflow.
+
+Customers submit their details through a focused enquiry form designed for action.
+
+Each lead appears in a private dashboard with status, priority, owner, and next action.
+
+Move opportunities through the sales pipeline from new enquiry to booked customer.
+
+Send approved follow-up messages on schedule, and customize the brand, booking link, and workflow.
+
+Choose your package and launch FollowDesk for your business with Noerong."""
 
 
-def font(size: int, bold: bool = False) -> ImageFont.FreeTypeFont:
-    name = "segoeuib.ttf" if bold else "segoeui.ttf"
-    return ImageFont.truetype(str(Path("C:/Windows/Fonts") / name), size)
+def font(size: int, semibold: bool = False) -> ImageFont.FreeTypeFont:
+    return ImageFont.truetype(str(FONT_SEMIBOLD if semibold else FONT_REGULAR), size)
 
 
-def title_frame(outro: bool = False) -> Image.Image:
-    image = Image.new("RGB", (WIDTH, HEIGHT), INK)
-    draw = ImageDraw.Draw(image)
-    draw.rounded_rectangle((75, 67, 135, 127), radius=17, fill=PRIMARY)
-    draw.text((96, 75), "F", font=font(34, True), fill=WHITE, anchor="ma")
-    draw.text((153, 77), "FOLLOWDESK", font=font(21, True), fill=WHITE)
-    draw.rounded_rectangle((75, 178, 280, 213), radius=18, fill=ACCENT)
+def rounded_panel(canvas: Image.Image, box: tuple[int, int, int, int], radius: int = 26) -> None:
+    shadow = Image.new("RGBA", canvas.size, (0, 0, 0, 0))
+    shadow_draw = ImageDraw.Draw(shadow)
+    x1, y1, x2, y2 = box
+    shadow_draw.rounded_rectangle(
+        (x1 + 8, y1 + 12, x2 + 8, y2 + 12), radius, fill=(0, 0, 0, 115)
+    )
+    canvas.alpha_composite(shadow.filter(ImageFilter.GaussianBlur(14)))
+    ImageDraw.Draw(canvas).rounded_rectangle(
+        box, radius, fill=PANEL, outline="#303A34", width=2
+    )
+
+
+def brand_header(canvas: Image.Image, label: str) -> None:
+    draw = ImageDraw.Draw(canvas)
+    draw.rounded_rectangle((48, 28, 88, 68), 12, fill=PURPLE)
+    draw.text((61, 33), "F", font=font(24, True), fill=CREAM)
+    draw.text((102, 31), "FollowDesk", font=font(25, True), fill=CREAM)
+    pill_width = draw.textbbox((0, 0), label.upper(), font=font(15, True))[2] + 34
+    draw.rounded_rectangle(
+        (WIDTH - 48 - pill_width, 32, WIDTH - 48, 64),
+        16,
+        fill="#1D2A23",
+        outline="#33433A",
+    )
     draw.text(
-        (177, 195),
-        "WHITE-LABEL PRODUCT",
-        font=font(13, True),
-        fill="#293600",
-        anchor="mm",
+        (WIDTH - 48 - pill_width + 17, 38),
+        label.upper(),
+        font=font(15, True),
+        fill=LIME,
     )
-    if outro:
-        headline = "Ready to stop losing leads?"
-        support = "A focused follow-up and booking system for service businesses."
-        action = "FollowDesk by Noerong"
-    else:
-        headline = "Turn every enquiry\ninto a clear next step."
-        support = "Lead capture, timed follow-up, booking, and a focused pipeline."
-        action = "See the complete workflow in 42 seconds"
-    draw.multiline_text(
-        (75, 255), headline, font=font(55, True), fill=WHITE, spacing=7
+
+
+def fit_scene(source: Path, target: Path, label: str) -> None:
+    canvas = Image.new("RGBA", (WIDTH, HEIGHT), BG)
+    brand_header(canvas, label)
+    box = (38, 84, WIDTH - 38, HEIGHT - 34)
+    rounded_panel(canvas, box)
+
+    shot = Image.open(source).convert("RGB")
+    fitted = ImageOps.fit(
+        shot,
+        (1168, 574),
+        method=Image.Resampling.LANCZOS,
+        centering=(0.5, 0.46),
     )
-    draw.text((78, 405), support, font=font(23), fill=MUTED)
-    draw.rounded_rectangle((75, 510, 520, 580), radius=35, fill=PRIMARY)
-    draw.text((297, 545), action, font=font(18, True), fill=WHITE, anchor="mm")
-    draw.ellipse((1110, 75, 1370, 335), fill="#26243a")
-    draw.ellipse((1050, 470, 1190, 610), fill="#324000")
-    return image
+    x = (WIDTH - fitted.width) // 2
+    y = 100 + (574 - fitted.height) // 2
+    mask = Image.new("L", fitted.size, 0)
+    ImageDraw.Draw(mask).rounded_rectangle(
+        (0, 0, fitted.width, fitted.height), 18, fill=255
+    )
+    canvas.paste(fitted, (x, y), mask)
+    canvas.convert("RGB").save(target, quality=95)
 
 
-def screenshot_frame(filename: str, label: str, headline: str) -> Image.Image:
-    source = Image.open(ASSETS / filename).convert("RGB")
-    source = source.resize((1088, 680), Image.Resampling.LANCZOS)
-    image = Image.new("RGB", (WIDTH, HEIGHT), "#f4f3f8")
-    image.paste(source.crop((0, 0, 1088, 610)), (96, 82))
-    draw = ImageDraw.Draw(image)
-    draw.rounded_rectangle((96, 23, 205, 59), radius=18, fill=ACCENT)
-    draw.text((150, 41), label.upper(), font=font(12, True), fill="#2d3c00", anchor="mm")
-    draw.text((224, 27), headline, font=font(24, True), fill=INK)
-    draw.rounded_rectangle((96, 82, 1184, 692), radius=20, outline="#d8d5e3", width=2)
-    return image
+def make_title(target: Path) -> None:
+    canvas = Image.new("RGBA", (WIDTH, HEIGHT), BG)
+    draw = ImageDraw.Draw(canvas)
+    for x in range(0, WIDTH, 80):
+        draw.line((x, 0, x, HEIGHT), fill="#121916", width=1)
+    for y in range(0, HEIGHT, 80):
+        draw.line((0, y, WIDTH, y), fill="#121916", width=1)
 
+    draw.rounded_rectangle((70, 72, 116, 118), 14, fill=PURPLE)
+    draw.text((84, 78), "F", font=font(26, True), fill=CREAM)
+    draw.text((132, 76), "FOLLOWDESK", font=font(23, True), fill=CREAM)
+    draw.rounded_rectangle((70, 175, 250, 215), 20, fill="#18251E", outline="#35473D")
+    draw.ellipse((89, 189, 101, 201), fill=LIME)
+    draw.text((113, 183), "LIVE PRODUCT", font=font(16, True), fill=LIME)
 
-def srt_time(value: timedelta) -> str:
-    total_ms = int(value.total_seconds() * 1000)
-    hours, remainder = divmod(total_ms, 3_600_000)
-    minutes, remainder = divmod(remainder, 60_000)
-    seconds, milliseconds = divmod(remainder, 1_000)
-    return f"{hours:02}:{minutes:02}:{seconds:02},{milliseconds:03}"
+    draw.text((70, 255), "Turn every enquiry", font=font(58, True), fill=CREAM)
+    draw.text((70, 323), "into a clear next step.", font=font(58, True), fill=LIME)
+    draw.text(
+        (72, 421),
+        "Lead capture, timed follow-up, booking, and a focused pipeline",
+        font=font(27),
+        fill=MUTED,
+    )
 
-
-def grouped_subtitles(cues: list[object], words_per_cue: int = 18) -> str:
-    source_sentences = [
-        sentence.split()
-        for sentence in re.split(r"(?<=[.!?])\s+", NARRATION_TEXT.strip())
-    ]
-    groups: list[tuple[list[object], list[str]]] = []
-    cursor = 0
-    for sentence_words in source_sentences:
-        sentence_cues = cues[cursor : cursor + len(sentence_words)]
-        cursor += len(sentence_words)
-        if len(sentence_cues) != len(sentence_words):
-            break
-        group_count = max(1, (len(sentence_cues) + words_per_cue - 1) // words_per_cue)
-        group_size = (len(sentence_cues) + group_count - 1) // group_count
-        for start in range(0, len(sentence_cues), group_size):
-            groups.append(
-                (
-                    sentence_cues[start : start + group_size],
-                    sentence_words[start : start + group_size],
-                )
-            )
-
-    if cursor != len(cues):
-        groups = [
-            (cues[start : start + words_per_cue], [cue.content for cue in cues[start : start + words_per_cue]])
-            for start in range(0, len(cues), words_per_cue)
-        ]
-
-    blocks: list[str] = []
-    for index, (group, source_words) in enumerate(groups, start=1):
-        words = " ".join(source_words)
-        wrapped = "\n".join(textwrap.wrap(words, width=62, max_lines=2))
-        cue_start = max(group[0].start - timedelta(milliseconds=80), timedelta())
-        cue_end = group[-1].end + timedelta(milliseconds=220)
-        blocks.append(
-            f"{index}\n{srt_time(cue_start)} --> {srt_time(cue_end)}\n{wrapped}\n"
+    pills = ["BRANDED CAPTURE", "FOLLOW-UP", "BOOKING"]
+    x = 70
+    for pill in pills:
+        width = draw.textbbox((0, 0), pill, font=font(15, True))[2] + 38
+        draw.rounded_rectangle(
+            (x, 512, x + width, 552), 20, fill=PANEL, outline="#35473D"
         )
-    return "\n".join(blocks)
+        draw.text((x + 19, 520), pill, font=font(15, True), fill="#D7DED9")
+        x += width + 14
+
+    canvas.convert("RGB").save(target, quality=95)
+
+
+def make_dashboard(target: Path) -> None:
+    source = Image.open(ASSETS / "02-lead-dashboard.png").convert("RGB")
+    cropped = ImageOps.fit(
+        source,
+        (WIDTH, HEIGHT),
+        method=Image.Resampling.LANCZOS,
+        centering=(0.5, 0.5),
+    )
+    canvas = cropped.convert("RGBA")
+    draw = ImageDraw.Draw(canvas)
+    draw.rounded_rectangle((930, 24, 1234, 66), 21, fill="#0F1713", outline="#314239")
+    draw.ellipse((951, 39, 963, 51), fill=LIME)
+    draw.text((975, 32), "PRIVATE LEAD DASHBOARD", font=font(14, True), fill=CREAM)
+    canvas.convert("RGB").save(target, quality=95)
+
+
+def make_outro(target: Path) -> None:
+    canvas = Image.new("RGBA", (WIDTH, HEIGHT), BG)
+    draw = ImageDraw.Draw(canvas)
+    draw.ellipse((920, -140, 1320, 260), fill="#171B35")
+    draw.ellipse((-160, 520, 240, 920), fill="#222A18")
+
+    draw.rounded_rectangle((70, 70, 116, 116), 14, fill=PURPLE)
+    draw.text((84, 76), "F", font=font(26, True), fill=CREAM)
+    draw.text((132, 74), "FOLLOWDESK", font=font(23, True), fill=CREAM)
+
+    draw.text((70, 213), "Stop losing leads", font=font(58, True), fill=CREAM)
+    draw.text((70, 281), "after the first enquiry.", font=font(58, True), fill=LIME)
+    draw.text(
+        (72, 388),
+        "Lead capture  •  Follow-up  •  Booking  •  Clear pipeline",
+        font=font(27),
+        fill=MUTED,
+    )
+
+    draw.rounded_rectangle((70, 490, 470, 558), 34, fill=LIME)
+    draw.text(
+        (108, 507),
+        "CHOOSE A PACKAGE TO START",
+        font=font(20, True),
+        fill="#102016",
+    )
+    canvas.convert("RGB").save(target, quality=95)
 
 
 async def create_narration() -> None:
-    dependency_dir = ROOT.parents[1] / "tmp" / "upwork-video" / "pydeps"
-    sys.path.insert(0, str(dependency_dir))
-    import edge_tts
-
     communicator = edge_tts.Communicate(
         NARRATION_TEXT,
         voice=VOICE,
-        rate="+8%",
+        rate="-10%",
         volume="+0%",
-        boundary="WordBoundary",
+        boundary="SentenceBoundary",
     )
     subtitle_maker = edge_tts.SubMaker()
     with NARRATION.open("wb") as audio_file:
         async for message in communicator.stream():
             if message["type"] == "audio":
                 audio_file.write(message["data"])
-            elif message["type"] == "WordBoundary":
+            elif message["type"] == "SentenceBoundary":
                 subtitle_maker.feed(message)
-    SUBTITLES.write_text(grouped_subtitles(subtitle_maker.cues), encoding="utf-8")
+    SUBTITLES.write_text(subtitle_maker.get_srt(), encoding="utf-8")
 
 
-def write_video() -> None:
+def render_video() -> Path:
     asyncio.run(create_narration())
+
+    title = FRAMES / "00-title.png"
+    form = FRAMES / "01-form.png"
+    dashboard = FRAMES / "02-dashboard.png"
+    pipeline = FRAMES / "03-pipeline.png"
+    email = FRAMES / "04-email.png"
+    brand = FRAMES / "05-brand.png"
+    outro = FRAMES / "06-outro.png"
+
+    make_title(title)
+    fit_scene(ASSETS / "01-customer-form.png", form, "BRANDED ENQUIRY")
+    make_dashboard(dashboard)
+    fit_scene(ASSETS / "03-pipeline.png", pipeline, "SALES PIPELINE")
+    fit_scene(ASSETS / "04-email-sequence.png", email, "TIMED FOLLOW-UP")
+    fit_scene(ASSETS / "05-brand-settings.png", brand, "WHITE-LABEL SETUP")
+    make_outro(outro)
+
     scenes = [
-        (title_frame(), 4.0),
-        (screenshot_frame("01-customer-form.png", "Capture", "A branded enquiry experience"), 7.0),
-        (
-            screenshot_frame(
-                "02-lead-dashboard.png", "Organize", "Every lead and next action in one place"
-            ),
-            7.0,
-        ),
-        (screenshot_frame("03-pipeline.png", "Convert", "Move opportunities from new to won"), 7.0),
-        (
-            screenshot_frame(
-                "04-email-sequence.png", "Follow up", "Approved messages sent on time"
-            ),
-            7.0,
-        ),
-        (
-            screenshot_frame(
-                "05-brand-settings.png",
-                "White label",
-                "The buyer controls the brand and booking link",
-            ),
-            5.0,
-        ),
-        (title_frame(outro=True), 5.0),
+        (title, 3.0),
+        (form, 6.5),
+        (dashboard, 7.0),
+        (pipeline, 6.8),
+        (email, 7.0),
+        (brand, 3.5),
+        (outro, 7.2),
     ]
-    executable = imageio_ffmpeg.get_ffmpeg_exe()
-    command = [
-        executable,
-        "-y",
-        "-f",
-        "rawvideo",
-        "-vcodec",
-        "rawvideo",
-        "-pix_fmt",
-        "rgb24",
-        "-s",
-        f"{WIDTH}x{HEIGHT}",
-        "-r",
-        str(FPS),
-        "-i",
-        "-",
-        "-an",
-        "-vcodec",
-        "libx264",
-        "-preset",
-        "medium",
-        "-crf",
-        "20",
-        "-pix_fmt",
-        "yuv420p",
-        "-movflags",
-        "+faststart",
-        str(SILENT_OUTPUT),
-    ]
-    process = subprocess.Popen(command, stdin=subprocess.PIPE)
-    if process.stdin is None:
-        raise RuntimeError("Could not open the video encoder")
-    fade_frames = 10
-    previous: Image.Image | None = None
-    try:
-        for scene, duration in scenes:
-            if previous is not None:
-                for index in range(1, fade_frames + 1):
-                    frame = Image.blend(previous, scene, index / fade_frames)
-                    process.stdin.write(frame.tobytes())
-            frame_count = max(1, int(duration * FPS) - (fade_frames if previous else 0))
-            payload = scene.tobytes()
-            for _ in range(frame_count):
-                process.stdin.write(payload)
-            previous = scene
-    finally:
-        process.stdin.close()
-    if process.wait() != 0:
-        raise RuntimeError("Video encoding failed")
-    subtitle_path = SUBTITLES.name
-    subtitle_filter = (
-        "subtitles=filename='"
+
+    ffmpeg = imageio_ffmpeg.get_ffmpeg_exe()
+    command = [ffmpeg, "-y"]
+    for path, duration in scenes:
+        command.extend(["-loop", "1", "-t", f"{duration:.1f}", "-i", str(path)])
+    command.extend(["-i", str(NARRATION)])
+
+    filters: list[str] = []
+    for index, (_, duration) in enumerate(scenes):
+        fade_out = max(duration - 0.25, 0)
+        filters.append(
+            f"[{index}:v]fps=30,format=yuv420p,"
+            f"fade=t=in:st=0:d=0.25,fade=t=out:st={fade_out:.2f}:d=0.25,"
+            f"setpts=PTS-STARTPTS[v{index}]"
+        )
+    joined = "".join(f"[v{i}]" for i in range(len(scenes)))
+    filters.append(f"{joined}concat=n={len(scenes)}:v=1:a=0[base]")
+    subtitle_path = SUBTITLES.relative_to(WORKSPACE).as_posix()
+    filters.append(
+        "[base]subtitles=filename='"
         + subtitle_path
-        + "':force_style='FontName=Segoe UI,FontSize=12,PrimaryColour=&H00FFFFFF,"
-        "BackColour=&H9A181727,OutlineColour=&H9A181727,BorderStyle=3,Outline=1,"
-        "Shadow=0,MarginL=90,MarginR=90,MarginV=24,Alignment=2'"
+        + "':force_style='FontName=Segoe UI,FontSize=16,PrimaryColour=&H00FFFFFF,"
+        "BackColour=&H78000000,OutlineColour=&H78000000,BorderStyle=3,Outline=1,"
+        "Shadow=0,MarginL=90,MarginR=90,MarginV=18,Alignment=2'[vout]"
     )
-    final_command = [
-        executable,
-        "-y",
-        "-i",
-        str(SILENT_OUTPUT),
-        "-i",
-        str(NARRATION),
-        "-vf",
-        subtitle_filter,
-        "-af",
-        "loudnorm=I=-16:LRA=11:TP=-1.5,apad=pad_dur=5",
-        "-t",
-        "42",
-        "-c:v",
-        "libx264",
-        "-preset",
-        "medium",
-        "-crf",
-        "19",
-        "-pix_fmt",
-        "yuv420p",
-        "-c:a",
-        "aac",
-        "-b:a",
-        "160k",
-        "-movflags",
-        "+faststart",
-        str(OUTPUT),
-    ]
-    subprocess.run(final_command, cwd=ASSETS, check=True)
-    SILENT_OUTPUT.unlink(missing_ok=True)
-    print(f"Created {OUTPUT}")
+    audio_index = len(scenes)
+    filters.append(f"[{audio_index}:a]apad=pad_dur=3[aout]")
+
+    command.extend(
+        [
+            "-filter_complex",
+            ";".join(filters),
+            "-map",
+            "[vout]",
+            "-map",
+            "[aout]",
+            "-t",
+            "41.0",
+            "-c:v",
+            "libx264",
+            "-preset",
+            "medium",
+            "-crf",
+            "19",
+            "-r",
+            "30",
+            "-pix_fmt",
+            "yuv420p",
+            "-c:a",
+            "aac",
+            "-b:a",
+            "128k",
+            "-movflags",
+            "+faststart",
+            str(OUTPUT),
+        ]
+    )
+    subprocess.run(command, cwd=WORKSPACE, check=True)
+    return OUTPUT
 
 
 if __name__ == "__main__":
-    write_video()
+    print(render_video())

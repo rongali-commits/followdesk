@@ -1,33 +1,28 @@
 1
-00:00:00,016 --> 00:00:03,973
-Meet FollowDesk, a focused lead follow-up system for service
-businesses.
+00:00:00,050 --> 00:00:04,222
+Turn every enquiry into a clear next step with FollowDesk.
 
 2
-00:00:04,491 --> 00:00:09,294
-Capture every enquiry through a branded form with the customer
-and service details your team needs.
+00:00:04,222 --> 00:00:09,736
+FollowDesk gives service businesses a branded lead capture and follow-up workflow.
 
 3
-00:00:09,804 --> 00:00:15,486
-Each lead appears in one dashboard, with its status, priority,
-owner, and next action clearly organized.
+00:00:09,736 --> 00:00:14,986
+Customers submit their details through a focused enquiry form designed for action.
 
 4
-00:00:15,996 --> 00:00:21,041
-Move opportunities through a simple pipeline, from new enquiry
-to booked customer or won business.
+00:00:14,986 --> 00:00:21,583
+Each lead appears in a private dashboard with status, priority, owner, and next action.
 
 5
-00:00:21,563 --> 00:00:27,488
-FollowDesk sends approved follow-up messages on schedule, so
-your team responds consistently without manual chasing.
+00:00:21,583 --> 00:00:26,708
+Move opportunities through the sales pipeline from new enquiry to booked customer.
 
 6
-00:00:28,010 --> 00:00:32,523
-Customize the brand, sender details, booking link, and
-workflow for each business.
+00:00:26,708 --> 00:00:33,652
+Send approved follow-up messages on schedule, and customize the brand, booking link, and workflow.
 
 7
-00:00:33,045 --> 00:00:35,833
-Choose your package and launch FollowDesk with Noerong.
+00:00:33,652 --> 00:00:38,111
+Choose your package and launch FollowDesk for your business with Noerong.
+

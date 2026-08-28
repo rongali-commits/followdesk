@@ -1,7 +1,15 @@
 from __future__ import annotations
 
+import asyncio
+import re
 import subprocess
+import sys
+import textwrap
+from datetime import timedelta
 from pathlib import Path
+
+SHARED_PYDEPS = Path(__file__).resolve().parents[3] / "tmp" / "upwork-video" / "pydeps"
+sys.path.insert(0, str(SHARED_PYDEPS))
 
 import imageio_ffmpeg
 from PIL import Image, ImageDraw, ImageFont
@@ -9,6 +17,9 @@ from PIL import Image, ImageDraw, ImageFont
 ROOT = Path(__file__).parents[1]
 ASSETS = ROOT / "sales-assets"
 OUTPUT = ASSETS / "FollowDesk-Upwork-Demo.mp4"
+SILENT_OUTPUT = ASSETS / "FollowDesk-Upwork-Demo-Silent.mp4"
+NARRATION = ASSETS / "FollowDesk-Upwork-Narration.mp3"
+SUBTITLES = ASSETS / "FollowDesk-Upwork-Narration.srt"
 WIDTH = 1280
 HEIGHT = 720
 FPS = 30
@@ -17,6 +28,16 @@ PRIMARY = "#5b4df7"
 ACCENT = "#dfff70"
 WHITE = "#ffffff"
 MUTED = "#aaa8b8"
+VOICE = "en-US-GuyNeural"
+NARRATION_TEXT = (
+    "Meet FollowDesk, a focused lead follow-up system for service businesses. "
+    "Capture every enquiry through a branded form with the customer and service details your team needs. "
+    "Each lead appears in one dashboard, with its status, priority, owner, and next action clearly organized. "
+    "Move opportunities through a simple pipeline, from new enquiry to booked customer or won business. "
+    "FollowDesk sends approved follow-up messages on schedule, so your team responds consistently without manual chasing. "
+    "Customize the brand, sender details, booking link, and workflow for each business. "
+    "Choose your package and launch FollowDesk with Noerong."
+)
 
 
 def font(size: int, bold: bool = False) -> ImageFont.FreeTypeFont:
@@ -70,7 +91,78 @@ def screenshot_frame(filename: str, label: str, headline: str) -> Image.Image:
     return image
 
 
+def srt_time(value: timedelta) -> str:
+    total_ms = int(value.total_seconds() * 1000)
+    hours, remainder = divmod(total_ms, 3_600_000)
+    minutes, remainder = divmod(remainder, 60_000)
+    seconds, milliseconds = divmod(remainder, 1_000)
+    return f"{hours:02}:{minutes:02}:{seconds:02},{milliseconds:03}"
+
+
+def grouped_subtitles(cues: list[object], words_per_cue: int = 18) -> str:
+    source_sentences = [
+        sentence.split()
+        for sentence in re.split(r"(?<=[.!?])\s+", NARRATION_TEXT.strip())
+    ]
+    groups: list[tuple[list[object], list[str]]] = []
+    cursor = 0
+    for sentence_words in source_sentences:
+        sentence_cues = cues[cursor : cursor + len(sentence_words)]
+        cursor += len(sentence_words)
+        if len(sentence_cues) != len(sentence_words):
+            break
+        group_count = max(1, (len(sentence_cues) + words_per_cue - 1) // words_per_cue)
+        group_size = (len(sentence_cues) + group_count - 1) // group_count
+        for start in range(0, len(sentence_cues), group_size):
+            groups.append(
+                (
+                    sentence_cues[start : start + group_size],
+                    sentence_words[start : start + group_size],
+                )
+            )
+
+    if cursor != len(cues):
+        groups = [
+            (cues[start : start + words_per_cue], [cue.content for cue in cues[start : start + words_per_cue]])
+            for start in range(0, len(cues), words_per_cue)
+        ]
+
+    blocks: list[str] = []
+    for index, (group, source_words) in enumerate(groups, start=1):
+        words = " ".join(source_words)
+        wrapped = "\n".join(textwrap.wrap(words, width=62, max_lines=2))
+        cue_start = max(group[0].start - timedelta(milliseconds=80), timedelta())
+        cue_end = group[-1].end + timedelta(milliseconds=220)
+        blocks.append(
+            f"{index}\n{srt_time(cue_start)} --> {srt_time(cue_end)}\n{wrapped}\n"
+        )
+    return "\n".join(blocks)
+
+
+async def create_narration() -> None:
+    dependency_dir = ROOT.parents[1] / "tmp" / "upwork-video" / "pydeps"
+    sys.path.insert(0, str(dependency_dir))
+    import edge_tts
+
+    communicator = edge_tts.Communicate(
+        NARRATION_TEXT,
+        voice=VOICE,
+        rate="+8%",
+        volume="+0%",
+        boundary="WordBoundary",
+    )
+    subtitle_maker = edge_tts.SubMaker()
+    with NARRATION.open("wb") as audio_file:
+        async for message in communicator.stream():
+            if message["type"] == "audio":
+                audio_file.write(message["data"])
+            elif message["type"] == "WordBoundary":
+                subtitle_maker.feed(message)
+    SUBTITLES.write_text(grouped_subtitles(subtitle_maker.cues), encoding="utf-8")
+
+
 def write_video() -> None:
+    asyncio.run(create_narration())
     scenes = [
         (title_frame(), 4.0),
         (screenshot_frame("01-customer-form.png", "Capture", "A branded enquiry experience"), 7.0),
@@ -124,7 +216,7 @@ def write_video() -> None:
         "yuv420p",
         "-movflags",
         "+faststart",
-        str(OUTPUT),
+        str(SILENT_OUTPUT),
     ]
     process = subprocess.Popen(command, stdin=subprocess.PIPE)
     if process.stdin is None:
@@ -146,6 +238,45 @@ def write_video() -> None:
         process.stdin.close()
     if process.wait() != 0:
         raise RuntimeError("Video encoding failed")
+    subtitle_path = SUBTITLES.name
+    subtitle_filter = (
+        "subtitles=filename='"
+        + subtitle_path
+        + "':force_style='FontName=Segoe UI,FontSize=12,PrimaryColour=&H00FFFFFF,"
+        "BackColour=&H9A181727,OutlineColour=&H9A181727,BorderStyle=3,Outline=1,"
+        "Shadow=0,MarginL=90,MarginR=90,MarginV=24,Alignment=2'"
+    )
+    final_command = [
+        executable,
+        "-y",
+        "-i",
+        str(SILENT_OUTPUT),
+        "-i",
+        str(NARRATION),
+        "-vf",
+        subtitle_filter,
+        "-af",
+        "loudnorm=I=-16:LRA=11:TP=-1.5,apad=pad_dur=5",
+        "-t",
+        "42",
+        "-c:v",
+        "libx264",
+        "-preset",
+        "medium",
+        "-crf",
+        "19",
+        "-pix_fmt",
+        "yuv420p",
+        "-c:a",
+        "aac",
+        "-b:a",
+        "160k",
+        "-movflags",
+        "+faststart",
+        str(OUTPUT),
+    ]
+    subprocess.run(final_command, cwd=ASSETS, check=True)
+    SILENT_OUTPUT.unlink(missing_ok=True)
     print(f"Created {OUTPUT}")
 
 

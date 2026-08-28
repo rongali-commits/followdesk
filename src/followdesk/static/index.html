@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Northstar Home Services demonstration enquiry and booking experience powered by FollowDesk.">
+  <title>Northstar Home Services | Get a clear next step</title>
+  <link rel="stylesheet" href="/assets/styles.css">
+</head>
+<body>
+  <header class="wrap site-nav">
+    <a class="brand" href="#top"><span class="brand-mark" data-logo>N</span><span data-short-name>Northstar</span></a>
+    <nav class="nav-links" aria-label="Main navigation">
+      <a href="#services">Services</a><a href="#process">How it works</a>
+      <a class="button primary" href="#enquiry">Get a free estimate</a>
+    </nav>
+  </header>
+  <main id="top">
+    <section class="wrap hero">
+      <div class="hero-copy">
+        <span class="eyebrow">Local service, without the chasing</span>
+        <h1>Your home.<br><span>Your time back.</span></h1>
+        <p>Tell us what you need and choose your next step. You will receive a clear confirmation now, not silence after submitting a form.</p>
+        <div class="hero-actions"><a class="button primary" href="#enquiry">Request an estimate</a><a class="button light" href="#process">See the process</a></div>
+        <div class="mini-proof"><span><i>✓</i>Clear follow-up</span><span><i>✓</i>Easy booking</span><span><i>✓</i>No pressure</span></div>
+      </div>
+      <div class="capture-wrap" id="enquiry">
+        <form class="capture-card" id="leadForm">
+          <div class="card-kicker"><span>Start your request</span><span class="demo-pill">Live demo</span></div>
+          <h2>What can we help with?</h2>
+          <p>Share a few details. We will confirm your request and give you a direct booking option.</p>
+          <div class="form-grid">
+            <div style="position:absolute;left:-10000px" aria-hidden="true"><label for="website">Website</label><input id="website" name="website" tabindex="-1" autocomplete="off"></div>
+            <div class="field"><label for="name">Your name</label><input id="name" name="name" autocomplete="name" required maxlength="100" placeholder="Alex Morgan"></div>
+            <div class="field"><label for="email">Email address</label><input id="email" name="email" type="email" autocomplete="email" required maxlength="200" placeholder="alex@example.com"></div>
+            <div class="field full"><label for="service">Service needed</label><select id="service" name="service" required><option value="">Choose a service</option></select></div>
+            <div class="field full"><label for="message">Anything we should know?</label><textarea id="message" name="message" maxlength="1500" placeholder="Tell us about your space, timing, or questions."></textarea></div>
+            <label class="consent field full"><input id="consent" name="consent" type="checkbox" required checked><span>I agree that this business may contact me about this request. This is a fictional product demonstration, so do not submit sensitive information.</span></label>
+          </div>
+          <button class="button primary" type="submit" id="submitButton">Send my request</button>
+          <div class="form-error" id="formError" role="alert"></div>
+        </form>
+        <div class="capture-card form-success" id="formSuccess" hidden>
+          <div class="success-mark">✓</div><h2>Request received.</h2>
+          <p id="successMessage">Your details are safely in the lead dashboard.</p>
+          <a class="button primary" id="bookingLink" href="#" target="_blank" rel="noopener">Choose a time</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="section wrap" id="services">
+      <div class="section-head"><h2>From first enquiry to a real conversation.</h2><p>This sample service website demonstrates the complete buyer experience. Every submission enters a visible pipeline with timed follow-up.</p></div>
+      <div class="feature-grid">
+        <article class="feature"><div class="feature-icon">01</div><h3>Instant confirmation</h3><p>The customer receives a branded acknowledgement immediately, while the team sees a new lead in the dashboard.</p></article>
+        <article class="feature"><div class="feature-icon">02</div><h3>Helpful follow-up</h3><p>Timed messages keep the enquiry moving without forcing staff to remember every check-in.</p></article>
+        <article class="feature"><div class="feature-icon">03</div><h3>Simple booking</h3><p>A Calendly, Cal.com, or custom scheduling link gives qualified leads a direct next step.</p></article>
+      </div>
+    </section>
+
+    <section class="section dark" id="process">
+      <div class="wrap flow">
+        <div class="flow-copy"><span class="eyebrow" style="color:var(--accent)">A calmer sales process</span><h2>Every lead gets a next step.</h2><p>FollowDesk helps small service businesses respond consistently without paying for a heavy enterprise CRM.</p></div>
+        <div class="flow-list">
+          <article class="flow-step"><b>1</b><div><h3>Request received</h3><p>Lead, source, service, and notes enter the pipeline.</p></div><time>Now</time></article>
+          <article class="flow-step"><b>2</b><div><h3>Branded acknowledgement</h3><p>The customer knows the request arrived safely.</p></div><time>Instant</time></article>
+          <article class="flow-step"><b>3</b><div><h3>Helpful reminder</h3><p>A direct reply or booking option moves the lead forward.</p></div><time>24 hours</time></article>
+          <article class="flow-step"><b>4</b><div><h3>Respectful close</h3><p>The sequence stops when the lead books, wins, or declines.</p></div><time>7 days</time></article>
+        </div>
+      </div>
+    </section>
+    <section class="wrap closing"><div class="closing-card"><div><h2>Ready for a clearer follow-up?</h2><p>Try the live enquiry form, then open the dashboard to see the result.</p></div><a class="button dark" href="/admin">Open product dashboard</a></div></section>
+  </main>
+  <footer class="site-footer"><div class="wrap footer-row"><span>© 2026 <span data-business-name>Northstar Home Services</span>. Fictional demonstration business.</span><span class="demo-notice">Powered by FollowDesk from Noerong</span></div></footer>
+  <script src="/assets/public.js" defer></script>
+</body>
+</html>

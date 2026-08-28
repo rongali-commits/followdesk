@@ -1,0 +1,43 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "followdesk"
+version = "1.0.0"
+description = "A white-label lead follow-up and booking system for service businesses."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi>=0.116,<1.0",
+  "httpx>=0.28,<1.0",
+  "python-dotenv>=1.1,<2.0",
+  "uvicorn[standard]>=0.35,<1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.4,<9.0",
+  "ruff>=0.12,<1.0",
+]
+
+[project.scripts]
+followdesk = "followdesk.app:run"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/followdesk"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"data/business.json" = "followdesk/defaults/business.json"
+"data/sequence.json" = "followdesk/defaults/sequence.json"
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]

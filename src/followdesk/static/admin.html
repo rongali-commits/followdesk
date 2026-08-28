@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>FollowDesk | Lead dashboard</title>
+  <link rel="stylesheet" href="/assets/styles.css">
+</head>
+<body class="admin-body">
+  <section class="login-screen" id="loginScreen">
+    <form class="login-card" id="loginForm">
+      <a class="brand" href="/"><span class="brand-mark">F</span>FollowDesk</a>
+      <h1>Welcome back.</h1><p>Enter the private admin token supplied during setup. It stays in this browser tab and is never placed in a URL.</p>
+      <div class="field"><label for="adminToken">Admin token</label><input id="adminToken" type="password" autocomplete="current-password" required placeholder="Your private token"></div>
+      <button class="button primary" type="submit">Open dashboard</button><div class="error" id="loginError"></div>
+    </form>
+  </section>
+
+  <div class="admin-app" id="adminApp">
+    <aside class="sidebar">
+      <a class="brand" href="/"><span class="brand-mark">F</span>FollowDesk</a>
+      <span class="side-label">Workspace</span>
+      <button class="nav-button active" data-view="overview"><span class="nav-icon">⌂</span>Overview</button>
+      <button class="nav-button" data-view="pipeline"><span class="nav-icon">◫</span>Pipeline</button>
+      <button class="nav-button" data-view="followups"><span class="nav-icon">↗</span>Follow-ups</button>
+      <span class="side-label">Configure</span>
+      <button class="nav-button" data-view="sequence"><span class="nav-icon">≡</span>Email sequence</button>
+      <button class="nav-button" data-view="settings"><span class="nav-icon">⚙</span>Brand settings</button>
+      <div class="sidebar-foot"><small id="sidebarBusiness">Your business</small><button id="logoutButton">Sign out</button></div>
+    </aside>
+
+    <main class="admin-main">
+      <header class="admin-top">
+        <div><h1 id="pageTitle">Lead overview</h1><p id="pageSubtitle">See every enquiry and the next action in one place.</p></div>
+        <div class="top-actions"><button class="small-button" id="refreshButton">Refresh</button><button class="small-button" id="exportButton">Export CSV</button><button class="small-button primary" id="processButton">Run due follow-ups</button></div>
+      </header>
+
+      <section class="view active" id="view-overview">
+        <div class="metric-grid">
+          <article class="metric primary"><span class="metric-label">Total leads</span><strong id="metricTotal">0</strong><small>All captured enquiries</small></article>
+          <article class="metric"><span class="metric-label">Needs attention</span><strong id="metricNew">0</strong><small>New leads to review</small></article>
+          <article class="metric"><span class="metric-label">Booked</span><strong id="metricBooked">0</strong><small id="metricRate">0% booking rate</small></article>
+          <article class="metric"><span class="metric-label">Follow-ups sent</span><strong id="metricSent">0</strong><small id="metricDue">0 due now</small></article>
+        </div>
+        <div class="toolbar"><div class="toolbar-left"><input class="search" id="searchInput" type="search" placeholder="Search name, email, phone, or service"><select class="filter" id="statusFilter"><option value="">All stages</option><option>new</option><option>contacted</option><option>qualified</option><option>booked</option><option>won</option><option>lost</option></select></div><span class="status-pill" id="leadCount">0 leads</span></div>
+        <div class="panel table-scroll"><table class="data-table"><thead><tr><th>Lead</th><th>Service</th><th>Stage</th><th>Next follow-up</th><th>Booking</th><th>Created</th></tr></thead><tbody id="leadRows"></tbody></table><div class="empty" id="leadEmpty" hidden><strong>No leads found</strong>Try another filter or submit the public demo form.</div></div>
+      </section>
+
+      <section class="view" id="view-pipeline"><div class="pipeline" id="pipeline"></div></section>
+
+      <section class="view" id="view-followups">
+        <div class="toolbar"><div><strong>Delivery log</strong><div style="font-size:12px;color:var(--muted);margin-top:4px">Demo mode records delivery without sending real email.</div></div><span class="status-pill" id="outboxCount">0 messages</span></div>
+        <div class="panel table-scroll"><table class="data-table"><thead><tr><th>Lead</th><th>Step</th><th>Subject</th><th>Scheduled</th><th>Status</th><th>Provider</th></tr></thead><tbody id="outboxRows"></tbody></table><div class="empty" id="outboxEmpty" hidden><strong>No follow-ups yet</strong>Email steps appear here after a lead with an email address is captured.</div></div>
+      </section>
+
+      <section class="view" id="view-sequence">
+        <div class="split-grid"><div><div class="toolbar"><div><strong>Four-step sequence</strong><div style="font-size:12px;color:var(--muted);margin-top:4px">Click a step to edit its timing and message.</div></div></div><div class="sequence-list" id="sequenceList"></div></div>
+          <form class="editor-panel" id="sequenceForm"><h2 id="sequenceTitle">Choose a sequence step</h2><p>Changes apply to new leads. Already scheduled messages keep their existing copy.</p><input id="sequenceStep" type="hidden"><div class="editor-grid"><div><label for="sequenceName">Step name</label><input id="sequenceName" required maxlength="100"></div><div><label for="sequenceDelay">Delay in hours</label><input id="sequenceDelay" type="number" min="0" max="8760" required></div><div class="full"><label for="sequenceSubject">Email subject</label><input id="sequenceSubject" required maxlength="200"></div><div class="full"><label for="sequenceBody">Email body</label><textarea id="sequenceBody" required maxlength="5000"></textarea><div class="token-help">Available tokens: {{first_name}}, {{business_name}}, {{service}}, {{booking_url}}, {{response_promise}}, {{sender_name}}</div></div><div><label for="sequenceEnabled">Status</label><select id="sequenceEnabled"><option value="true">Enabled</option><option value="false">Disabled</option></select></div></div><button class="button primary" style="margin-top:18px" type="submit">Save sequence step</button><div class="error" id="sequenceError"></div></form>
+        </div>
+      </section>
+
+      <section class="view" id="view-settings">
+        <form class="editor-panel" id="settingsForm"><h2>White-label settings</h2><p>These values update the public enquiry experience and future follow-up messages.</p><div class="editor-grid">
+          <div><label for="businessName">Business name</label><input id="businessName" required maxlength="120"></div><div><label for="shortName">Short name</label><input id="shortName" required maxlength="40"></div>
+          <div><label for="tagline">Tagline</label><input id="tagline" required maxlength="160"></div><div><label for="logoText">Logo initials</label><input id="logoText" required maxlength="3"></div>
+          <div><label for="primaryColor">Primary color</label><input id="primaryColor" type="color" required></div><div><label for="accentColor">Accent color</label><input id="accentColor" type="color" required></div>
+          <div><label for="contactEmail">Contact email</label><input id="contactEmail" type="email" required></div><div><label for="senderName">Sender name</label><input id="senderName" required></div>
+          <div><label for="replyTo">Reply-to email</label><input id="replyTo" type="email" required></div><div><label for="bookingUrl">Booking URL</label><input id="bookingUrl" type="url" placeholder="https://cal.com/your-team"></div>
+          <div class="full"><label for="responsePromise">Response promise</label><input id="responsePromise" required maxlength="300"></div><div class="full"><label for="serviceOptions">Services, one per line</label><textarea id="serviceOptions" required></textarea></div><div class="full"><label for="privacyUrl">Privacy policy URL, optional</label><input id="privacyUrl" type="url"></div>
+        </div><button class="button primary" style="margin-top:18px" type="submit">Save brand settings</button><div class="error" id="settingsError"></div></form>
+      </section>
+    </main>
+  </div>
+
+  <div class="drawer-backdrop" id="drawerBackdrop"></div><aside class="drawer" id="leadDrawer"><header class="drawer-head"><div><h2 id="drawerName">Lead details</h2><p id="drawerContact"></p></div><button class="icon-button" id="closeDrawer" aria-label="Close">×</button></header><div class="drawer-content" id="drawerContent"></div></aside>
+  <div class="toast" id="toast"></div>
+  <script src="/assets/admin.js" defer></script>
+</body>
+</html>

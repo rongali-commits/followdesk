@@ -1,0 +1,30 @@
+[
+  {
+    "step": 1,
+    "delay_hours": 0,
+    "name": "Instant acknowledgement",
+    "subject": "We received your request, {{first_name}}",
+    "body": "Hi {{first_name}},\n\nThanks for contacting {{business_name}} about {{service}}. We have your request and will review the details shortly.\n\nIf you would like to choose a convenient time now, use this link: {{booking_url}}\n\n{{response_promise}}\n\n{{sender_name}}"
+  },
+  {
+    "step": 2,
+    "delay_hours": 24,
+    "name": "Helpful follow-up",
+    "subject": "A quick follow-up on your {{service}} request",
+    "body": "Hi {{first_name}},\n\nI wanted to make sure you have everything you need regarding your {{service}} enquiry. Reply to this email with any questions, or choose a time here: {{booking_url}}\n\n{{sender_name}}"
+  },
+  {
+    "step": 3,
+    "delay_hours": 72,
+    "name": "Booking reminder",
+    "subject": "Would you like to discuss your request?",
+    "body": "Hi {{first_name}},\n\nWe still have your request open. If the timing is right, you can book a short call here: {{booking_url}}\n\nIf your plans changed, simply reply and let us know.\n\n{{sender_name}}"
+  },
+  {
+    "step": 4,
+    "delay_hours": 168,
+    "name": "Final check-in",
+    "subject": "Should we close your request?",
+    "body": "Hi {{first_name}},\n\nThis is our final check-in about your {{service}} request. If you still need help, reply to this message or choose a time: {{booking_url}}\n\nNo pressure. We will close the request if we do not hear back.\n\n{{sender_name}}"
+  }
+]

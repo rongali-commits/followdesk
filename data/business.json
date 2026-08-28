@@ -1,0 +1,20 @@
+{
+  "name": "Northstar Home Services",
+  "short_name": "Northstar",
+  "tagline": "Helpful service. Clear next steps.",
+  "logo_text": "N",
+  "primary_color": "#5b4df7",
+  "accent_color": "#dfff70",
+  "contact_email": "hello@northstar-demo.example",
+  "sender_name": "Maya from Northstar",
+  "reply_to": "hello@northstar-demo.example",
+  "booking_url": "https://cal.com/",
+  "service_options": [
+    "Home cleaning",
+    "Deep cleaning",
+    "Move-in or move-out cleaning",
+    "Commercial cleaning"
+  ],
+  "privacy_url": "",
+  "response_promise": "We normally reply within one business day."
+}

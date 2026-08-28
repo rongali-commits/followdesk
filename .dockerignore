@@ -1,0 +1,11 @@
+.git
+.github
+.venv
+__pycache__
+.pytest_cache
+.ruff_cache
+runtime/*.db*
+sales-assets
+tests
+*.md
+!.env.example

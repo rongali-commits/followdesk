@@ -8,4 +8,5 @@ runtime/*.db*
 sales-assets
 tests
 *.md
+!README.md
 !.env.example

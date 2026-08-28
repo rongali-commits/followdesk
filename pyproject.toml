@@ -20,6 +20,10 @@ dev = [
   "pytest>=8.4,<9.0",
   "ruff>=0.12,<1.0",
 ]
+media = [
+  "Pillow>=12,<13",
+  "imageio-ffmpeg>=0.6,<1.0",
+]
 
 [project.scripts]
 followdesk = "followdesk.app:run"

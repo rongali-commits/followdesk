@@ -13,7 +13,10 @@ COPY data ./data
 RUN pip install --no-cache-dir .
 
 RUN mkdir -p /app/runtime && chown -R app:app /app
-USER app
+
+# Railway attaches persistent volumes after the image is built. Those mounts
+# start as root-owned storage, so the process needs permission to create the
+# SQLite database inside /app/runtime.
 
 EXPOSE 8000
 CMD ["sh", "-c", "uvicorn followdesk.app:app --host 0.0.0.0 --port ${PORT:-8000}"]

@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "followdesk"
-version = "1.0.0"
+version = "1.0.1"
 description = "A white-label lead follow-up and booking system for service businesses."
 readme = "README.md"
 requires-python = ">=3.11"

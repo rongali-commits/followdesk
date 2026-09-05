@@ -92,6 +92,26 @@ def test_notes_and_filters(
     assert results[0]["id"] == lead_id
 
 
+def test_team_can_stop_remaining_followups_without_closing_a_lead(
+    client: TestClient, admin_headers: dict[str, str], lead_payload: dict[str, object]
+) -> None:
+    lead_id = client.post("/api/leads", json=lead_payload).json()["id"]
+    path = f"/api/admin/leads/{lead_id}/stop-followups"
+    assert client.post(path).status_code == 401
+    response = client.post(path, headers=admin_headers)
+    assert response.status_code == 200
+    lead = response.json()
+    assert lead["status"] == "new"
+    assert lead["next_follow_up_at"] is None
+    assert sum(item["status"] == "cancelled" for item in lead["followups"]) == 3
+    assert all(item["status"] != "pending" for item in lead["followups"])
+    assert any(item["kind"] == "followups_stopped" for item in lead["activities"])
+    processed = client.post("/api/admin/process-followups", headers=admin_headers)
+    assert processed.json()["processed"] == 0
+    missing = client.post("/api/admin/leads/missing/stop-followups", headers=admin_headers)
+    assert missing.status_code == 404
+
+
 def test_webhook_uses_separate_secret(
     client: TestClient, lead_payload: dict[str, object]
 ) -> None:

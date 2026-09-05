@@ -280,6 +280,36 @@ class Storage:
             )
         return self.get_lead(lead_id)
 
+    def stop_followups(self, lead_id: str) -> dict[str, Any] | None:
+        with self.connect() as connection:
+            if not connection.execute("SELECT 1 FROM leads WHERE id=?", (lead_id,)).fetchone():
+                return None
+            connection.execute(
+                "UPDATE outbox SET status='cancelled' WHERE lead_id=? AND status='pending'",
+                (lead_id,),
+            )
+            connection.execute(
+                "UPDATE leads SET next_follow_up_at=NULL, updated_at=? WHERE id=?",
+                (iso(), lead_id),
+            )
+            connection.execute(
+                "INSERT INTO activities (id, lead_id, kind, body, created_at) "
+                "VALUES (?, ?, ?, ?, ?)",
+                (uuid.uuid4().hex[:12], lead_id, "followups_stopped",
+                 "Remaining follow-ups cancelled by the team.", iso()),
+            )
+        return self.get_lead(lead_id)
+
+    def message_is_pending(self, message_id: str) -> bool:
+        with self.connect() as connection:
+            return bool(connection.execute(
+                """SELECT 1 FROM outbox JOIN leads ON leads.id=outbox.lead_id
+                   WHERE outbox.id=? AND outbox.status='pending'
+                   AND leads.status NOT IN ('won', 'lost')
+                   AND leads.booking_status!='booked'""",
+                (message_id,),
+            ).fetchone())
+
     def add_note(self, lead_id: str, body: str) -> dict[str, Any] | None:
         with self.connect() as connection:
             if not connection.execute("SELECT 1 FROM leads WHERE id=?", (lead_id,)).fetchone():

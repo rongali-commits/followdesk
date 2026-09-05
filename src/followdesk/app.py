@@ -188,6 +188,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         try:
             for message in storage.due_messages():
                 try:
+                    if not storage.message_is_pending(message["id"]):
+                        continue
                     provider = mailer.send(message, storage.get_settings())
                     storage.mark_message_sent(message["id"], provider)
                     processed += 1
@@ -354,6 +356,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         if values.get("status") == "booked" and "booking_status" not in values:
             values["booking_status"] = "booked"
         lead = storage.update_lead(lead_id, values)
+        if not lead:
+            raise HTTPException(status_code=404, detail="Lead not found")
+        return lead
+
+    @app.post("/api/admin/leads/{lead_id}/stop-followups", dependencies=[Depends(require_admin)])
+    async def stop_followups(lead_id: str) -> dict[str, Any]:
+        lead = storage.stop_followups(lead_id)
         if not lead:
             raise HTTPException(status_code=404, detail="Lead not found")
         return lead

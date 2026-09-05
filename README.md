@@ -144,3 +144,8 @@ node --check src/followdesk/static/admin.js
 ## Commercial use
 
 This repository is prepared as a productized-service base, not a public open-source template. Customize the included license template for each buyer. The template is not legal advice.
+
+
+## Version 1.0.1: stop remaining follow-ups
+
+The lead drawer includes a private admin action to cancel pending messages after a reply or opt-out, without closing the opportunity. Cancellation is recorded in the activity history. A message already in delivery may finish. Replies go to the configured reply-to mailbox; automatic inbox sync and reply detection are not included.
